@@ -1,23 +1,29 @@
 import React from 'react';
-import {ApolloProvider} from '@Apollo/react-hooks';
-import ApolloClient from 'apollo-boost';
-import { BrowserRouter as Router, Routes, Route, Switch } from 'react-router-dom';
+import {ApolloProvider, createHttpLink, InMemoryCache,ApolloClient} from '@apollo/client';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import {setContext} from '@apollo/client/link/context';
 import SearchBooks from './pages/SearchBooks';
 import SavedBooks from './pages/SavedBooks';
 import Navbar from './components/Navbar';
 
-const client = new ApolloClient({
-  request: (operation) => {
-    const token = localStorage.getItem('id_token');
+const authLink = setContext((_, {headers}) => {
+  const token = localStorage.getItem('id_token');
 
-    operation.setContext({
-      headers: {
-        authorization: token ? `Bearer ${token}` : "",
-      },
-    });
-  },
+  return {
+    headers: {
+      ...headers,
+      authorization: token ? `Bearer ${token}` : '',
+    },
+  };
+});
 
+const httpLink = createHttpLink({
   uri: '/graphql',
+
+})
+const client = new ApolloClient({
+  link: authLink.concat(httpLink),
+  cache: new InMemoryCache(),
 });
 
 
@@ -29,7 +35,7 @@ function App() {
       <Router>
       <>
         <Navbar />
-        <Switch> 
+        <Routes>
           <Route 
             path='/' 
             element={<SearchBooks />} 
@@ -42,7 +48,7 @@ function App() {
             path='*'
             element={<h1 className='display-2'>Wrong page!</h1>}
           />
-         </Switch>
+          </Routes>
       </>
     </Router>
     </ApolloProvider>

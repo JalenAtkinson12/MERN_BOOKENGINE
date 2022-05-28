@@ -4,10 +4,11 @@ const db = require('./config/connection');
 const {ApolloServer} = require("apollo-server-express");
 const {authMiddleware} = require("./utils/auth");
 
-const app = express();
-const PORT = process.env.PORT || 3001;
-
 const {typeDefs, resolvers} = require("./schemas");
+
+const PORT = process.env.PORT || 3001;
+const app = express();
+
 
 const server = new ApolloServer({
   typeDefs,
@@ -15,9 +16,9 @@ const server = new ApolloServer({
   context: authMiddleware,
 });
 
-server.applyMiddleware({app});
 
-app.use(express.urlencoded({ extended: true }));
+
+app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 // if we're in production, serve client/build as static assets
@@ -26,13 +27,23 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../client/build/index.html"));
+  res.sendFile(path.join(__dirname, '../client/build/index.html'));
 });
 
-db.once('open', () => {
-  app.listen(PORT, () => {
-    console.log(`API server routing on localhost:${PORT}!`);
+const StartApolloServer = async (typeDefs, resolvers) => {
+  await server.start();
+  server.applyMiddleware({app});
 
-    console.log(`Use GraphQl at http://localhost:${PORT}$(server.graphqlPath)`);
-  });
-});
+  db.once('open', () => {
+    app.listen(PORT, () => {
+      console.log(`API server routing on localhost:${PORT}!`);
+  
+      console.log(`Use GraphQl at http://localhost:${PORT}${server.graphqlPath}`);
+    });
+  })
+
+
+};
+
+StartApolloServer(typeDefs, resolvers);
+
